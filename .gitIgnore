@@ -1,1 +1,16 @@
 .vscode/
+
+# Python 缓存与编译产物
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Jupyter 缓存
+.ipynb_checkpoints/
+
+# Python 生成的图片（matplotlib 等输出）
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.gif
