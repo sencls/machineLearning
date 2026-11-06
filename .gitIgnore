@@ -1,5 +1,6 @@
 .vscode/
 
+data/
 # Python 缓存与编译产物
 __pycache__/
 *.py[cod]
