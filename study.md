@@ -271,3 +271,78 @@ VC维提供了一个衡量训练误差和泛化误差之间的间隔，但是衡
 
 数据清洗：异常值处理+特征构建(标准化)
 
+# 权重衰减
+处理过拟合的方法
+控制模型：参数比较小或参数的选取范围比较小，一般不限制b，小的$\theta$意味着更强的正则项
+1. 使用均方范数作为硬性限制
+$$ \min{l(W,b)}\ subject\ to \lVert W \rVert^2 \leq\theta$$
+2. 使用均方范数作为柔性限制
+
+对于每个$\theta$,都可以找到$\lambda$使得之前的目标函数等价于下面这个
+$$\min{l(W,b)}+\frac{\lambda}{2}\lVert W \rVert^2$$
+
+可以通过拉格朗日乘子证明。超参数$\lambda$控制了正则项的重要程度。其为0，无作用，其趋向于无穷，新学习到的w更趋近于0
+
+作为一个超参数，不能过大也不能过小，L2范数在于将大权重均摊为小权重，而L1范数则是将小权重推的更小
+
+使得梯度更新法则变为如下部分：
+计算梯度：
+$$\frac{\partial}{\partial w}(l(W,b)+\frac{\lambda}{2}\lVert W \rVert^2)=\frac{\partial l(W,b)}{\partial W}+\lambda W$$
+时间t更新：
+$$W_{t+1}=(1-\eta\lambda)W_t-\eta\frac{\partial l(W_t,b_t)}{\partial W_t}$$
+通常$\eta\lambda\le1$,这就是权重衰退
+
+# 丢弃法 dropout
+一个好的模型需要对输入数据的扰动鲁棒
+- 使用有噪声的数据等价于Tikhonov正则
+- 丢弃法： 在层之间加入噪音
+
+## 无差别加入噪音
+对于X加入噪音得到$X^\prime$，但是保证期望不变$E[X^\prime]=X$。
+丢弃法对每个元素进行扰动 
+$$x^\prime=\begin{cases}
+    0&\ with\ probablity\ p\\\frac{x_i}{1-p}&other
+\end{cases}$$
+
+一般将dropout在隐藏层的输出进行操作
+- 训练时使用：这是一个正则项，影响参数的更新
+$$h=\sigma(W_1x+b)\\h^\prime=dropout(h)\\o=W_2h^\prime+b_2\\y=softmax(o)$$
+- 推理时：丢弃法直接返回输入，才能保证确定性的输出
+$$h=dropout(h)$$
+
+# 数值稳定性
+神经网络梯度
+考虑有d层的神经网络 ,t是层数，y是指输入经过$f_1$层，一直向后传递到d层，再加一个loss的输出
+$$h^t=f_t(h^{t-1})\ and\ y=l\bullet f_d\bullet...\bullet f_1(x)$$
+则l关于某个参数的梯度为,也就是d-t次的矩阵乘法
+$$\frac{\partial l}{\partial W_t}=\frac{\partial l}{\partial h^dd}\frac{\partial h^d}{\partial h^{d-1}}...\frac{\partial h^t}{\partial W_t}$$
+
+由此出现两个问题
+- 梯度爆炸
+- 梯度消失
+
+## 方法
+目标是将梯度规范到合理区间
+- 将乘法变为加法： ResNet，LSTM
+- 归一化：梯度归一化，梯度剪裁
+- 合理的权重初始化和激活函数选择
+
+将每层的方差看作一个常数，每层的输出和梯度看作随机变量，使得他们的均值和方差保持一致
+假设如下 
+对输入要求：
+$$E[h_i^t]=0,Var[h_i^t]=a$$
+而反向求导之后有：
+$$E[\frac{\partial l}{\partial h_t^i}]=0,Var[\frac{\partial l}{\partial h_t^i}]=b$$
+
+1. 权重初始化
+在合理区间随机初始化参数。训练开始时更容易有数值不稳定的情况
+- 远离最优解的地方loss表面可能很复杂
+- 最优解附近表面比较平滑
+小网络可以使用比较小的正态分布，深度网络不适用
+Xavier初始化
+检查常用激活函数
+2. 对于激活函数进行数值微调，从而满足要求
+也就是要满足激活函数的一阶导约等于1，有界且区域大，同时配套对应的初始化(前向方向恒定)
+
+# 实战1：房价预测
+对于数据集先进行预处理：将不需要的数据剔除，然后处理缺省值
